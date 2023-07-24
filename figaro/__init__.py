@@ -7,6 +7,7 @@ __version__ = "0.1"
 #           "fileNamingStandards",
 #           "gzipIdentifier",
 #           "qualityScoreHandler",
+#           "coresSettings",
 #           "trimParameterPrediction"]
 #
 #from . import defaultParser
@@ -18,3 +19,4 @@ __version__ = "0.1"
 #from . import gzipIdentifier
 #from . import qualityScoreHandler
 #from . import trimParameterPrediction
+#from . import coresSettings

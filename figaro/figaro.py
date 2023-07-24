@@ -1,4 +1,6 @@
 import logging
+import multiprocessing
+import coresSetting
 
 try:
     from . import environmentParameterParser, fileNamingStandards, fastqAnalysis, trimParameterPrediction
@@ -26,6 +28,7 @@ def getApplicationParameters():
     parameters.addParameter("subsample", int, default=default.subsample, lowerBound=-1)
     parameters.addParameter("percentile", int, default = default.percentile, lowerBound=1, upperBound=100)
     parameters.addParameter("fileNamingStandard", str, default="nononsense", externalValidation=True)
+    parameters.addParameter("cores",int,default = 1, lowerBound=1, upperBound=max([multiprocessing.cpu_count() - 1, 1]))
     parameters.checkCreatedFileStructures()
     if not parameters.fileNamingStandard.value.lower() in fileNamingStandards.aliasList.keys():
         raise ValueError("%s is not a valid naming standard alias" %parameters.fileNamingStandard.value)
@@ -56,6 +59,7 @@ def parseArgs():
     parser.add_argument("-p", "--percentile", help = "Percentile to use for expected error model", default=default.percentile, type=int)
     parser.add_argument("-F", "--fileNamingStandard", help = "File naming standard to use", default = "nononsense")
     parser.add_argument("-l", "--logFile", help = "Log file path", default = None)
+    parser.add_argument("-c", "--cores", help = "Number of cores to use for multiprocessing", default=1, type=int)
     return parser.parse_args()
 
 
@@ -106,6 +110,7 @@ def getApplicationParametersFromCommandLine():
     parameters.sideLoadParameter("percentile", percentile)
     parameters.sideLoadParameter("minimumCombinedReadLength", combinedReadLengths)
     parameters.sideLoadParameter("fileNamingStandard", fileNamingStandard)
+    parameters.sideLoadParameter("cores", cores)
     return parameters
 
 
@@ -206,6 +211,7 @@ def main():
     startTime = datetime.datetime.now()
     setLogging()
     parameters = getApplicationParameters()
+    coresSetting.coreLimit=parameters.cores.value
     fileNamingStandard = parameters.fileNamingStandard.value
     resultTable, forwardCurve, reverseCurve = trimParameterPrediction.performAnalysisLite(parameters.inputDirectory.value, parameters.minimumCombinedReadLength.value, subsample =  parameters.subsample.value, percentile = parameters.percentile.value, forwardPrimerLength=parameters.forwardPrimerLength.value, reversePrimerLength=parameters.reversePrimerLength.value, namingStandardAlias=fileNamingStandard)
     for result in resultTable:
