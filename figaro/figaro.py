@@ -20,8 +20,8 @@ def getApplicationParameters():
     parameters = environmentParameterParser.EnvParameters()
     parameters.addParameter("outputFileName", str, default=default.outputFileName, externalValidation=True)
     parameters.addParameter("ampliconLength", int, lowerBound=0, required=True)
-    parameters.addParameter("forwardPrimerLength", int, required=True, lowerBound=0, upperBound=50)
-    parameters.addParameter("reversePrimerLength", int, required=True, lowerBound=0, upperBound=50)
+    parameters.addParameter("forwardPrimerLength", int, default = 0, lowerBound=0, upperBound=50)
+    parameters.addParameter("reversePrimerLength", int, default = 0, lowerBound=0, upperBound=50)
     parameters.addParameter("inputDirectory", str, default=default.inputFolder, expectedDirectory=True)
     parameters.addParameter("outputDirectory", str, default = default.outputFolder, expectedDirectory=True)
     parameters.addParameter("minimumOverlap", int, default=default.minOverlap, lowerBound=5, upperBound=30)
@@ -50,8 +50,8 @@ def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--outputDirectory", help = "Directory for outputs", default = os.getcwd())
     parser.add_argument("-a", "--ampliconLength", help = "Length of amplicon (not including primers)", required=True, type=int)
-    parser.add_argument("-f", "--forwardPrimerLength", help = "Length of forward primer", required=True, type=int)
-    parser.add_argument("-r", "--reversePrimerLength", help = "Length of reverse primer", required=True, type=int)
+    parser.add_argument("-f", "--forwardPrimerLength", help = "Length of forward primer (default is {})".format(default.forwardPrimerLength), default = default.forwardPrimerLength, type=int)
+    parser.add_argument("-r", "--reversePrimerLength", help = "Length of reverse primer (default is {})".format(default.reversePrimerLength), default = default.reversePrimerLength, type=int)
     parser.add_argument("-i", "--inputDirectory", help = "Directory with Fastq files to analyze", default = os.getcwd())
     parser.add_argument("-n", "--outputFileName", help = "Output file for trim site JSON", default=default.outputFileName)
     parser.add_argument("-m", "--minimumOverlap", help = "Minimum overlap between the paired-end reads", default=default.minOverlap, type=int)
@@ -75,11 +75,11 @@ def getApplicationParametersFromCommandLine():
     if not ampliconLength > 0:
         raise ValueError("Amplicon length must be a positive integer. %s was given" %ampliconLength)
     forwardPrimerLength = args.forwardPrimerLength
-    if not forwardPrimerLength > 0:
-        raise ValueError("Forward primer length must be a positive integer. %s was given" %forwardPrimerLength)
+    if not forwardPrimerLength >= 0:
+        raise ValueError("Forward primer length must be a positive integer or zero. %s was given" %forwardPrimerLength)
     reversePrimerLength = args.reversePrimerLength
-    if not reversePrimerLength > 0:
-        raise ValueError("Reverse primer length must be a positive integer. %s was given" %reversePrimerLength)
+    if not reversePrimerLength >= 0:
+        raise ValueError("Reverse primer length must be a positive integer or zero. %s was given" %reversePrimerLength)
     inputDirectory = args.inputDirectory
     if not os.path.isdir(inputDirectory):
         raise NotADirectoryError("Unable to find input directory at %s" %inputDirectory)
