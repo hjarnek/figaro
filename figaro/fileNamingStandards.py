@@ -3,6 +3,7 @@ aliasList = {"zymo": "zymo",
              "zymoservicesnamingstandard": "zymo",
              "zymoservices": "zymo",
              "illumina": "illumina",
+             "sample_dir": "sample_dir",
              "keriksson": "keriksson",
              "nononsense": "nononsense",
              "fvieira": "fvieira",
@@ -90,6 +91,22 @@ class IlluminaStandard(NamingStandard):
             raise ValueError("%s does not appear to be a valid Illumina file name. Please check file naming convention argument." % fileName)
 
 
+class Sample_DirectionStandard(NamingStandard):
+
+    def getSampleInfo(self, fileName:str):
+        basename = fileName.rsplit(".", 1)[0]
+        group = "default"
+        try:
+            sample, direction = basename.rsplit("_", 1)
+            direction = direction.replace("R", "")
+            direction = direction.replace("r", "")
+            direction = int(direction)
+        except ValueError:
+            raise ValueError("%s does not appear to be a valid file for this standard. Please check file naming convention argument." %fileName)
+
+        return group, sample, direction
+
+
 class KErickssonStandard(NamingStandard):
 
     def getSampleInfo(self, fileName:str):
@@ -154,6 +171,7 @@ class ManualNamingStandard(NamingStandard):
 def loadNamingStandard(name:str):
     aliasObjectKey = {"zymo" : ZymoServicesNamingStandard,
                       "illumina" : IlluminaStandard,
+                      "sample_dir" : Sample_DirectionStandard,
                       "keriksson": KErickssonStandard,
                       "nononsense": NoNonsenseNamingStandard,
                       "fvieira": FVieiraStandard,
