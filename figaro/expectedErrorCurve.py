@@ -113,27 +113,27 @@ def makeExpectedErrorPercentileArrayForFastq(path:str, subsample:int=0, percenti
     return numpy.array(percentileList)
 
 
-def makeExpectedErrorPercentileArrayForFastqList(fastqList:list, subsample:int=0, percentile:int=83, primerLength:int=0):
+def makeExpectedErrorPercentileArrayForFastqList(fastqList:list, subsample:int=0, percentile:int=83, primerLength:int=0, cores:int=0):
     try:
         from . import easyMultiprocessing
     except ImportError:
         import easyMultiprocessing
     parallelAgent = ParallelExpectedErrorPercentileAgent(subsample, percentile, primerLength)
-    expectedErrorReturns = easyMultiprocessing.parallelProcessRunner(parallelAgent.calculateAverageExpectedError, fastqList)
+    expectedErrorReturns = easyMultiprocessing.parallelProcessRunner(parallelAgent.calculateAverageExpectedError, fastqList, cores)
     averageExpectedErrorMatrix = numpy.stack([expectedErrorArray[1] for expectedErrorArray in expectedErrorReturns])
     averageExpectedErrorArray = numpy.mean(averageExpectedErrorMatrix, axis = 0)
     return averageExpectedErrorArray
 
 
-def makeExpectedErrorPercentileArraysForDirectory(path:str, namingStandard:typing.Type[fileNamingStandards.NamingStandard], subsample:int=0, percentile:int=83, forwardPrimerLength:int=0, reversePrimerLength:int=0):
+def makeExpectedErrorPercentileArraysForDirectory(path:str, namingStandard:typing.Type[fileNamingStandards.NamingStandard], subsample:int=0, percentile:int=83, forwardPrimerLength:int=0, reversePrimerLength:int=0, cores:int=0):
     import os
     if not os.path.isdir(path):
         raise NotADirectoryError("Unable to find directory %s" %path)
     fastqList = fastqHandler.findSamplesInFolder(path, namingStandard)
     forwardFastqs = [fastq for fastq in fastqList if fastq.direction == 1]
     reverseFastqs = [fastq for fastq in fastqList if fastq.direction == 2]
-    forwardExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(forwardFastqs, subsample, percentile, forwardPrimerLength)
-    reverseExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(reverseFastqs, subsample, percentile, reversePrimerLength)
+    forwardExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(forwardFastqs, subsample, percentile, forwardPrimerLength, cores)
+    reverseExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(reverseFastqs, subsample, percentile, reversePrimerLength, cores)
     return forwardExpectedErrorArray, reverseExpectedErrorArray
 
 
@@ -156,10 +156,10 @@ def getGroupName(path:str, namingStandard:typing.Type[fileNamingStandards.Naming
     return fastqList[0].group
 
 
-def calculateExpectedErrorCurvesForFastqFolder(path:str, namingStandard:typing.Type[fileNamingStandards.NamingStandard], subsample:int=0, percentile:int=83, makePNG:bool=False, sampleGroupID:str=None, forwardPrimerLength:int=0, reversePrimerLength:int=0):
+def calculateExpectedErrorCurvesForFastqFolder(path:str, namingStandard:typing.Type[fileNamingStandards.NamingStandard], subsample:int=0, percentile:int=83, makePNG:bool=False, sampleGroupID:str=None, forwardPrimerLength:int=0, reversePrimerLength:int=0, cores:int=0):
     if not sampleGroupID:
         sampleGroupID = getGroupName(path, namingStandard)
-    forwardExpectedErrorArray, reverseExpectedErrorArray = makeExpectedErrorPercentileArraysForDirectory(path, namingStandard, subsample, percentile, forwardPrimerLength, reversePrimerLength)
+    forwardExpectedErrorArray, reverseExpectedErrorArray = makeExpectedErrorPercentileArraysForDirectory(path, namingStandard, subsample, percentile, forwardPrimerLength, reversePrimerLength, cores)
     forwardPositions, forwardValues = makeXAndYValuesForPositionArray(forwardExpectedErrorArray)
     reversePositions, reverseValues = makeXAndYValuesForPositionArray(reverseExpectedErrorArray)
     forwardCurve = fitExponentialCurve(forwardPositions, forwardValues, makePNG, "%s forward reads" % sampleGroupID)
@@ -167,13 +167,13 @@ def calculateExpectedErrorCurvesForFastqFolder(path:str, namingStandard:typing.T
     return forwardCurve, reverseCurve
 
 
-def calculateExpectedErrorCurvesForFastqList(fastqList, subsample:int=0, percentile:int=83, makePNG:bool=False, sampleGroupID:str=None, forwardPrimerLength:int=0, reversePrimerLength:int=0):
+def calculateExpectedErrorCurvesForFastqList(fastqList, subsample:int=0, percentile:int=83, makePNG:bool=False, sampleGroupID:str=None, forwardPrimerLength:int=0, reversePrimerLength:int=0, cores:int=0):
     if not sampleGroupID:
         sampleGroupID = fastqList[0].group
     forwardFastqs = [fastq for fastq in fastqList if fastq.direction == 1]
     reverseFastqs = [fastq for fastq in fastqList if fastq.direction == 2]
-    forwardExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(forwardFastqs, subsample, percentile, forwardPrimerLength)
-    reverseExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(reverseFastqs, subsample, percentile, reversePrimerLength)
+    forwardExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(forwardFastqs, subsample, percentile, forwardPrimerLength, cores)
+    reverseExpectedErrorArray = makeExpectedErrorPercentileArrayForFastqList(reverseFastqs, subsample, percentile, reversePrimerLength, cores)
     forwardPositions, forwardValues = makeXAndYValuesForPositionArray(forwardExpectedErrorArray)
     reversePositions, reverseValues = makeXAndYValuesForPositionArray(reverseExpectedErrorArray)
     forwardCurve = fitExponentialCurve(forwardPositions, forwardValues, makePNG, "%s forward reads. %s percentile" %(sampleGroupID, ordinal(percentile)))

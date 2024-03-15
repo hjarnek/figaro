@@ -3,7 +3,6 @@ aliasList = {"zymo": "zymo",
              "zymoservicesnamingstandard": "zymo",
              "zymoservices": "zymo",
              "illumina": "illumina",
-             "sample_dir": "sample_dir",
              "keriksson": "keriksson",
              "nononsense": "nononsense",
              "fvieira": "fvieira",
@@ -55,7 +54,7 @@ class NoNonsenseNamingStandard(NamingStandard):
     def getSampleInfo(self, fileName:str):
         import re
         import os
-        regex = '_R?([12])(_\\d\\d\\d)?$'
+        regex = '_[Rr]?([12])(_\\d\\d\\d)?$'
         baseName = re.sub("\.(fq|fastq)(.gz)?$", "", os.path.basename(fileName))
         regexResult = re.search(regex, baseName)
         if not regexResult:
@@ -89,22 +88,6 @@ class IlluminaStandard(NamingStandard):
             return group, sample, direction
         except (ValueError, IndexError):
             raise ValueError("%s does not appear to be a valid Illumina file name. Please check file naming convention argument." % fileName)
-
-
-class Sample_DirectionStandard(NamingStandard):
-
-    def getSampleInfo(self, fileName:str):
-        basename = fileName.rsplit(".", 1)[0]
-        group = "default"
-        try:
-            sample, direction = basename.rsplit("_", 1)
-            direction = direction.replace("R", "")
-            direction = direction.replace("r", "")
-            direction = int(direction)
-        except ValueError:
-            raise ValueError("%s does not appear to be a valid file for this standard. Please check file naming convention argument." %fileName)
-
-        return group, sample, direction
 
 
 class KErickssonStandard(NamingStandard):
@@ -171,7 +154,6 @@ class ManualNamingStandard(NamingStandard):
 def loadNamingStandard(name:str):
     aliasObjectKey = {"zymo" : ZymoServicesNamingStandard,
                       "illumina" : IlluminaStandard,
-                      "sample_dir" : Sample_DirectionStandard,
                       "keriksson": KErickssonStandard,
                       "nononsense": NoNonsenseNamingStandard,
                       "fvieira": FVieiraStandard,

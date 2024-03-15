@@ -5,8 +5,10 @@ try:
     from . import fastqHandler
     from . import fastqAnalysis
     from . import expectedErrorCurve
+    from figaro.defaults import standard as default
 except ImportError:
     import fileNamingStandards, fastqHandler, fastqAnalysis, expectedErrorCurve
+    import defaults.standard as default
 import typing
 import numpy
 
@@ -370,14 +372,14 @@ def parallelReadLengthChecker(fastq:fileNamingStandards.NamingStandard):
     return fastq, fastqHandler.estimateReadLength(fastq.filePath, getVariance=True)
 
 
-def checkReadLengths(fastqList:list):
+def checkReadLengths(fastqList:list, cores:int=0):
     try:
         from . import easyMultiprocessing
     except ImportError:
         import easyMultiprocessing
     read1Data = []
     read2Data = []
-    fastqReadLengthData = easyMultiprocessing.parallelProcessRunner(parallelReadLengthChecker, fastqList)
+    fastqReadLengthData = easyMultiprocessing.parallelProcessRunner(parallelReadLengthChecker, fastqList, cores)
     for fastq, data in fastqReadLengthData:
         if fastq.direction == 1:
             read1Data.append(data)
@@ -408,7 +410,7 @@ def checkReadLengths(fastqList:list):
     return read1Length, read2Length
 
 
-def performAnalysis(inputDirectory:str, minimumCombinedReadLength:int, subsample:int=0, percentile:int=83, fastqList:list = None, makeExpectedErrorPlots:bool = True, forwardPrimerLength:int=0, reversePrimerLength:int=0):
+def performAnalysis(inputDirectory:str, minimumCombinedReadLength:int, subsample:int = 0, percentile:int = default.percentile, fastqList:list = None, makeExpectedErrorPlots:bool = True, forwardPrimerLength:int = default.forwardPrimerLength, reversePrimerLength:int = default.reversePrimerLength, cores:int = default.cores):
     from . import expectedErrorCurve
     if not inputDirectory:
         if not fastqList:
@@ -418,10 +420,10 @@ def performAnalysis(inputDirectory:str, minimumCombinedReadLength:int, subsample
         if not fastqList:
             raise ValueError("No fastq files found in input directory")
     sampleOrder = getSampleOrder(fastqList)
-    forwardReadLength, reverseReadLength = checkReadLengths(fastqList)
+    forwardReadLength, reverseReadLength = checkReadLengths(fastqList, cores)
     forwardReadLength = forwardReadLength - forwardPrimerLength
     reverseReadLength = reverseReadLength - reversePrimerLength
-    forwardCurve, reverseCurve = expectedErrorCurve.calculateExpectedErrorCurvesForFastqList(fastqList, subsample=subsample, percentile=percentile, makePNG=makeExpectedErrorPlots, forwardPrimerLength=forwardPrimerLength, reversePrimerLength=reversePrimerLength)
+    forwardCurve, reverseCurve = expectedErrorCurve.calculateExpectedErrorCurvesForFastqList(fastqList, subsample=subsample, percentile=percentile, makePNG=makeExpectedErrorPlots, forwardPrimerLength=forwardPrimerLength, reversePrimerLength=reversePrimerLength, cores=cores)
     minimumTrimmingPositions = calculateLowestTrimBaseForPairedReads(forwardReadLength, reverseReadLength, minimumCombinedReadLength)
     trimPositions = makeAllPossibleTrimLocations(forwardReadLength, reverseReadLength, minimumCombinedReadLength)
     forwardQ2Array, reverseQ2Array = makeCombinedQ2ArraysForBothEnds(fastqList, sampleOrder, subsample, forwardPrimerLength, reversePrimerLength)
@@ -431,7 +433,7 @@ def performAnalysis(inputDirectory:str, minimumCombinedReadLength:int, subsample
     return resultTable, forwardCurve, reverseCurve
 
 
-def performAnalysisLite(inputDirectory:str, minimumCombinedReadLength:int, subsample:int=0, percentile:int=83, fastqList:list = None, makeExpectedErrorPlots:bool = True, forwardPrimerLength:int=0, reversePrimerLength:int=0, namingStandardAlias:str = "illumina"):
+def performAnalysisLite(inputDirectory:str, minimumCombinedReadLength:int, subsample:int = 0, percentile:int = default.percentile, fastqList:list = None, makeExpectedErrorPlots:bool = True, forwardPrimerLength:int = default.forwardPrimerLength, reversePrimerLength:int = default.reversePrimerLength, namingStandardAlias:str = default.fileNamingStandard, cores:int = default.cores):
     try:
         from . import expectedErrorCurve
     except:
@@ -445,12 +447,12 @@ def performAnalysisLite(inputDirectory:str, minimumCombinedReadLength:int, subsa
         if not fastqList:
             raise ValueError("No fastq files found in input directory")
     sampleOrder = getSampleOrder(fastqList)
-    forwardReadLength, reverseReadLength = checkReadLengths(fastqList)
+    forwardReadLength, reverseReadLength = checkReadLengths(fastqList, cores)
     print("Forward read length: %s" %forwardReadLength)
     print("Reverse read length: %s" %reverseReadLength)
     forwardReadLength = forwardReadLength - forwardPrimerLength
     reverseReadLength = reverseReadLength - reversePrimerLength
-    forwardCurve, reverseCurve = expectedErrorCurve.calculateExpectedErrorCurvesForFastqList(fastqList, subsample=subsample, percentile=percentile, makePNG=makeExpectedErrorPlots, forwardPrimerLength=forwardPrimerLength, reversePrimerLength=reversePrimerLength)
+    forwardCurve, reverseCurve = expectedErrorCurve.calculateExpectedErrorCurvesForFastqList(fastqList, subsample=subsample, percentile=percentile, makePNG=makeExpectedErrorPlots, forwardPrimerLength=forwardPrimerLength, reversePrimerLength=reversePrimerLength, cores=cores)
     minimumTrimmingPositions = calculateLowestTrimBaseForPairedReads(forwardReadLength, reverseReadLength, minimumCombinedReadLength)
     trimPositions = makeAllPossibleTrimLocations(forwardReadLength, reverseReadLength, minimumCombinedReadLength)
     forwardExpectedErrorMatrix, reverseExpectedErrorMatrix = makeCombinedErrorMatricesForBothEnds(fastqList, sampleOrder, subsample, minimumTrimmingPositions, forwardPrimerLength, reversePrimerLength)

@@ -1,6 +1,5 @@
 import logging
 import multiprocessing
-import coresSetting
 
 try:
     from . import environmentParameterParser, fileNamingStandards, fastqAnalysis, trimParameterPrediction
@@ -18,17 +17,17 @@ def getApplicationParameters():
     if len(sys.argv) > 1:
         return getApplicationParametersFromCommandLine()
     parameters = environmentParameterParser.EnvParameters()
-    parameters.addParameter("outputFileName", str, default=default.outputFileName, externalValidation=True)
+    parameters.addParameter("outputFileName", str, default = default.outputFileName, externalValidation=True)
     parameters.addParameter("ampliconLength", int, lowerBound=0, required=True)
-    parameters.addParameter("forwardPrimerLength", int, default = 0, lowerBound=0, upperBound=50)
-    parameters.addParameter("reversePrimerLength", int, default = 0, lowerBound=0, upperBound=50)
-    parameters.addParameter("inputDirectory", str, default=default.inputFolder, expectedDirectory=True)
+    parameters.addParameter("forwardPrimerLength", int, default = default.forwardPrimerLength, lowerBound=0, upperBound=50)
+    parameters.addParameter("reversePrimerLength", int, default = default.reversePrimerLength, lowerBound=0, upperBound=50)
+    parameters.addParameter("inputDirectory", str, default = default.inputFolder, expectedDirectory=True)
     parameters.addParameter("outputDirectory", str, default = default.outputFolder, expectedDirectory=True)
-    parameters.addParameter("minimumOverlap", int, default=default.minOverlap, lowerBound=5, upperBound=30)
-    parameters.addParameter("subsample", int, default=default.subsample, lowerBound=-1)
+    parameters.addParameter("minimumOverlap", int, default = default.minOverlap, lowerBound=5, upperBound=30)
+    parameters.addParameter("subsample", int, default = default.subsample, lowerBound=-1)
     parameters.addParameter("percentile", int, default = default.percentile, lowerBound=1, upperBound=100)
-    parameters.addParameter("fileNamingStandard", str, default="nononsense", externalValidation=True)
-    parameters.addParameter("cores",int,default = 0, lowerBound=0, upperBound=max([multiprocessing.cpu_count() - 1, 1]))
+    parameters.addParameter("fileNamingStandard", str, default = default.fileNamingStandard, externalValidation=True)
+    parameters.addParameter("cores", int, default = default.cores, lowerBound=0, upperBound=max([multiprocessing.cpu_count() - 1, 1]))
     parameters.checkCreatedFileStructures()
     if not parameters.fileNamingStandard.value.lower() in fileNamingStandards.aliasList.keys():
         raise ValueError("%s is not a valid naming standard alias" %parameters.fileNamingStandard.value)
@@ -49,17 +48,17 @@ def parseArgs():
     import os
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--outputDirectory", help = "Directory for outputs", default = os.getcwd())
-    parser.add_argument("-a", "--ampliconLength", help = "Length of amplicon (not including primers)", required=True, type=int)
+    parser.add_argument("-a", "--ampliconLength", help = "Length of amplicon, not including primers", required=True, type=int)
     parser.add_argument("-f", "--forwardPrimerLength", help = "Length of forward primer (default is {})".format(default.forwardPrimerLength), default = default.forwardPrimerLength, type=int)
     parser.add_argument("-r", "--reversePrimerLength", help = "Length of reverse primer (default is {})".format(default.reversePrimerLength), default = default.reversePrimerLength, type=int)
     parser.add_argument("-i", "--inputDirectory", help = "Directory with Fastq files to analyze", default = os.getcwd())
-    parser.add_argument("-n", "--outputFileName", help = "Output file for trim site JSON", default=default.outputFileName)
-    parser.add_argument("-m", "--minimumOverlap", help = "Minimum overlap between the paired-end reads", default=default.minOverlap, type=int)
+    parser.add_argument("-n", "--outputFileName", help = "Output file for trim site JSON", default = default.outputFileName)
+    parser.add_argument("-m", "--minimumOverlap", help = "Minimum overlap between the paired-end reads (default is {})".format(default.minOverlap), default=default.minOverlap, type=int)
     parser.add_argument("-s", "--subsample", help = "Subsampling level (will analyze approximately 1/x reads", default=default.subsample, type=int)
-    parser.add_argument("-p", "--percentile", help = "Percentile to use for expected error model", default=default.percentile, type=int)
-    parser.add_argument("-F", "--fileNamingStandard", help = "File naming standard to use", default = "nononsense")
+    parser.add_argument("-p", "--percentile", help = "Percentile to use for expected error model (default is {})".format(default.percentile), default = default.percentile, type=int)
+    parser.add_argument("-F", "--fileNamingStandard", help = "File naming standard to use (default is '{}')".format(default.fileNamingStandard), default = default.fileNamingStandard)
     parser.add_argument("-l", "--logFile", help = "Log file path", default = None)
-    parser.add_argument("-c", "--cores", help = "Number of cores to use for multiprocessing [CALCULATED DEFAULT: "+str(max([multiprocessing.cpu_count() - 1, 1]))+"]", default=0, type=int)
+    parser.add_argument("-c", "--cores", help = "Number of cores to use for multiprocessing [CALCULATED DEFAULT: "+str(max([multiprocessing.cpu_count() - 1, 1]))+"]", default = default.cores, type=int)
     return parser.parse_args()
 
 
@@ -195,7 +194,7 @@ def saveResultOutput(outputDirectory:str, outputResultTableFileName:str, resultT
     return outputResultTablePath, outputForwardCurvePath, outputReverseCurvePath
 
 
-def runAnalysis(inputDirectory:str, ampliconLength:int, forwardPrimerLength:int, reversePrimerLength:int, minimumOverlap:int=20, fileNamingStandard:str="nononsense", subsample:int = -1, percentile:int=83):
+def runAnalysis(inputDirectory:str, ampliconLength:int, forwardPrimerLength:int = default.forwardPrimerLength, reversePrimerLength:int = default.reversePrimerLength, minimumOverlap:int = default.minOverlap, fileNamingStandard:str = default.fileNamingStandard, subsample:int = default.subsample, percentile:int = default.percentile):
     import os
     if not os.path.isdir(inputDirectory):
         raise NotADirectoryError("Unable to find directory at %s" %inputDirectory)
@@ -212,9 +211,9 @@ def main():
     startTime = datetime.datetime.now()
     setLogging()
     parameters = getApplicationParameters()
-    coresSetting.coreLimit=parameters.cores.value
+    cores=parameters.cores.value
     fileNamingStandard = parameters.fileNamingStandard.value
-    resultTable, forwardCurve, reverseCurve = trimParameterPrediction.performAnalysisLite(parameters.inputDirectory.value, parameters.minimumCombinedReadLength.value, subsample =  parameters.subsample.value, percentile = parameters.percentile.value, forwardPrimerLength=parameters.forwardPrimerLength.value, reversePrimerLength=parameters.reversePrimerLength.value, namingStandardAlias=fileNamingStandard)
+    resultTable, forwardCurve, reverseCurve = trimParameterPrediction.performAnalysisLite(parameters.inputDirectory.value, parameters.minimumCombinedReadLength.value, subsample =  parameters.subsample.value, percentile = parameters.percentile.value, forwardPrimerLength=parameters.forwardPrimerLength.value, reversePrimerLength=parameters.reversePrimerLength.value, namingStandardAlias=fileNamingStandard, cores=cores)
     for result in resultTable:
         print(result)
     resultTableFileName = os.path.join(parameters.outputDirectory.value, parameters.outputFileName.value)

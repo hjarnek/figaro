@@ -1,7 +1,11 @@
 import multiprocessing
 import multiprocessing.pool
 import logging
-import coresSetting
+try:
+    from figaro.defaults import standard as default
+except ImportError:
+    import defaults.standard as default
+
 logger = logging.getLogger(__name__)
 
 def calculateAvailableCores():
@@ -30,7 +34,7 @@ class Deadpool(multiprocessing.pool.Pool): #Deadpool has no class
         super(Deadpool, self).__init__(*args, **kwargs)
 
 
-def parallelProcessRunner(processor, itemsToProcess, coreLimit:int = coresSetting.coreLimit, filterFunction = False, totalSizeEstimate = None, coresPerProcess = 1, nonDaemonic = False):
+def parallelProcessRunner(processor, itemsToProcess, coreLimit:int = default.cores, filterFunction = False, totalSizeEstimate = None, coresPerProcess = 1, nonDaemonic = False):
     logger.debug("Running import statements")
     import multiprocessing
     import inspect

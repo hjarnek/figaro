@@ -5,3 +5,5 @@ subsample = -1
 percentile = 83
 forwardPrimerLength = 0
 reversePrimerLength = 0
+fileNamingStandard = "nononsense"
+cores = 0
